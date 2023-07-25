@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Personalización de Farmabox</title>
+</head>
+<body>
+    <h1>Personalización de Farmabox</h1>
+    <form id="personalizacionForm">
+        <label for="ancho">Ancho:</label>
+        <select id="ancho" name="ancho">
+            <option value="425">425</option>
+            <option value="562">562</option>
+            <option value="758">758</option>
+            <option value="858">858</option>
+        </select>
+        <br>
+
+        <label for="altura">Altura:</label>
+        <input type="number" id="altura" name="altura" required>
+        <br>
+
+        <label for="profundidad">Profundidad:</label>
+        <select id="profundidad" name="profundidad" required>
+            <!-- Options will be populated dynamically using JavaScript -->
+        </select>
+        <br>
+
+        <input type="submit" value="Calcular combinaciones">
+    </form>
+
+    <div id="combinacionesResultado"></div>
+
+    <script>
+        const selectAncho = document.getElementById("ancho");
+        const selectProfundidad = document.getElementById("profundidad");
+        const form = document.getElementById("personalizacionForm");
+        const combinacionesResultado = document.getElementById("combinacionesResultado");
+
+        // Define the options for each ancho value
+        const opcionesAncho = {
+            "425": {
+                "alturas": [205, 2325],
+                "profundidades": [430, 535, 630, 810, 910, 1010],
+                "cajones": [
+                    { "mini": 80 },
+                    { "normal": 125 },
+                    { "doble": 250 },
+                ],
+            },
+            "562": {
+                "alturas": [205, 2325],
+                "profundidades": [430, 535, 630, 810, 910, 1010],
+                "cajones": [
+                    { "mini": 80 },
+                    { "normal": 125 },
+                    { "doble": 250 },
+                    { "extraible": 970 },
+                ],
+            },
+            "758": {
+                "alturas": [205, 1375],
+                "profundidades": [430, 535, 630, 810, 1010],
+                "cajones": [
+                    { "mini": 80 },
+                    { "normal": 125 },
+                    { "doble": 250 },
+                ],
+            },
+            "858": {
+                "alturas": [1200, 2325],
+                "profundidades": [810, 910, 1010],
+                "cajones": [
+                    { "mini": 80 },
+                    { "normal": 125 },
+                    { "doble": 250 },
+                    { "extraible": 970 },
+                ],
+            }
+        };
+
+        // Function to generate combinations of cajones
+        function generarCombinaciones(cajones, alturaObjetivo, margenError) {
+            const combinaciones = [];
+            const stack = [[[], 0, 0]];
+
+            while (stack.length) {
+                const [combinacionActual, alturaActual, indiceCajon] = stack.pop();
+
+                if (alturaActual === alturaObjetivo) {
+                    combinaciones.push(combinacionActual);
+                    continue;
+                }
+
+                if (indiceCajon < cajones.length) {
+                    const cajonActual = cajones[indiceCajon];
+                    const cajonNombre = Object.keys(cajonActual)[0];
+
+                    const alturaCajon = cajonActual[cajonNombre];
+                    const repeticionesMaximas = Math.floor((alturaObjetivo - alturaActual + margenError) / alturaCajon);
+
+                    for (let repeticiones = repeticionesMaximas; repeticiones >= 0; repeticiones--) {
+                        const nuevaAltura = alturaActual + repeticiones * alturaCajon;
+                        if (nuevaAltura <= alturaObjetivo) {
+                            const nuevaCombinacion = [...combinacionActual, [cajonActual, repeticiones]];
+                            stack.push([nuevaCombinacion, nuevaAltura, indiceCajon + 1]);
+                        }
+                    }
+                }
+            }
+
+            return combinaciones;
+        }
+
+        // Function to update options for profundidad select based on selected ancho
+        function updateOptions() {
+            const anchoSeleccionado = selectAncho.value;
+            const opcionesSeleccionadas = opcionesAncho[anchoSeleccionado];
+
+            // Update the options for profundidad select
+            selectProfundidad.innerHTML = "";
+            opcionesSeleccionadas.profundidades.forEach((profundidad) => {
+                const option = document.createElement("option");
+                option.text = profundidad;
+                option.value = profundidad;
+                selectProfundidad.appendChild(option);
+            });
+        }
+
+        // Call the updateOptions function on initial page load
+        updateOptions();
+
+        // Add an event listener to the ancho select to update options when the value changes
+        selectAncho.addEventListener("change", updateOptions);
+
+        // Validate the form data and calculate combinations on form submission
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const altura = parseInt(document.getElementById("altura").value);
+            const ancho = parseInt(selectAncho.value);
+            const profundidad = parseInt(selectProfundidad.value);
+
+            if (isNaN(altura)) {
+                alert("Por favor, ingrese una altura válida.");
+                return;
+            }
+
+            if (isNaN(ancho) || isNaN(profundidad)) {
+                alert("Por favor, seleccione un ancho y una profundidad válidos.");
+                return;
+            }
+
+            const cajonesSeleccionados = opcionesAncho[ancho].cajones;
+            const combinaciones = generarCombinaciones(cajonesSeleccionados, altura, 0);
+
+            if (combinaciones.length > 0) {
+                combinacionesResultado.innerHTML = "<h2>Combinaciones posibles:</h2>";
+                combinaciones.forEach((combinacion, index) => {
+                    const cajonesStr = combinacion.map(([cajon, cantidad]) => `${cantidad} ${Object.keys(cajon)[0]}(s)`).join(", ");
+                    combinacionesResultado.innerHTML += `<p>Combinación ${index + 1}: altura:${altura}---ancho:${ancho}---profundidad:${profundidad}---cajones: ${cajonesStr} para un total de ${combinacion.reduce((total, [_, cantidad]) => total + cantidad, 0)} cajones</p>`;
+                });
+            } else {
+                combinacionesResultado.innerHTML = "<p>No se encontraron combinaciones posibles con la altura ingresada.</p>";
+            }
+        });
+    </script>
+</body>
+</html>
